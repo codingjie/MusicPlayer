@@ -1,5 +1,22 @@
 <RCC>
     <qresource prefix="/">
         <file>main.qml</file>
+        <file>music/Music.qml</file>
+        <file>music/images/btn_favorite_no.png</file>
+        <file>music/images/btn_favorite_yes.png</file>
+        <file>music/images/btn_listjump.png</file>
+        <file>music/images/btn_listrandom.png</file>
+        <file>music/images/btn_listscircle_single.png</file>
+        <file>music/images/btn_listsingle.png</file>
+        <file>music/images/btn_next.png</file>
+        <file>music/images/btn_pause.png</file>
+        <file>music/images/btn_play.png</file>
+        <file>music/images/btn_previous.png</file>
+        <file>music/images/cd.png</file>
+        <file>music/images/cd2.png</file>
+        <file>music/images/handle.png</file>
+        <file>music/images/img_volume1.png</file>
+        <file>music/images/img_volume2.png</file>
+        <file>music/images/lyricmask.png</file>
     </qresource>
 </RCC>

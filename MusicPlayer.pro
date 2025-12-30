@@ -1,4 +1,4 @@
-QT += quick
+QT += quick qml network quickcontrols2 multimedia
 
 CONFIG += c++11
 
@@ -14,13 +14,9 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
-        aflex/adc.cpp \
-        desktop/desktop.cpp \
         main.cpp \
-        media/mediaListModel.cpp \
         music/lyricmodel.cpp \
         music/playlistmodel.cpp \
-        wireless/wirelessmodel.cpp
 
 RESOURCES += qml.qrc
 
@@ -36,12 +32,7 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
 HEADERS += \
-    aflex/adc.h \
-    aflex/dac.h \
-    desktop/desktop.h \
-    media/mediaListModel.h \
     music/lyricmodel.h \
     music/playlistmodel.h \
-    wireless/wirelessmodel.h
 
 DISTFILES +=

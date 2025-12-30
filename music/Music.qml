@@ -16,25 +16,10 @@ import QtGraphicalEffects 1.0
 import QtMultimedia 5.0
 import QtQuick 2.4
 import QtQuick 2.0
-import "../helpbutton"
 
 Item {
     visible: false
     id: music
-
-    HelpMessages {
-        anchors.fill: parent
-        z: 105
-        appIcon: WINStyle ? "" : "qrc:/desktop/androidstyleicons/music.png"
-        appName: "音乐"
-        appVersion: "Version 1.0.1"
-        subtoolText: "1.此软件为音乐播放器，请将音乐文件、歌词文件按如0.mp3,0.lrc，歌词和音乐文件名字对应程序会自动读出里面的写真文件、歌曲名和歌手名。歌词要是“UFT-8”编码格式。
-2.请使用MP3tag软件，准备好一张jpg 最好是50*50以上大小的写真图片，与对应的mp3歌曲，可自行百度mp3tag的使用方法，把写真图片插入到歌曲里，软件才会读出写真图片，同时可修改歌手或者歌曲名称！
-3.注意程序只定义了20首歌曲的路径，0.mp3~20.mp3!具体请看程序，程序仅供学习与参考
-4.如果是在正点原子IMX6ULL开发板上运行，歌词歌曲默认放在/opt/src/目录下！
-5.如果是Windows下编译，64位的PC建议Qt Creator选择64位的编译器。"
-        versionText: "1.【Version 1.0.0 2020-10-06】。\n初始版本\n2.【Version 1.0.1 2020-12-01】。\n修复在Windows某些Qt Creator版本编译运行不了的问题"
-    }
 
     function songsInit(){
         plm.add(appCurrtentDir)
@@ -168,7 +153,7 @@ Item {
     Audio {
         id: ado
         source: ""
-        volume: 0.5
+        volume: volumeSlider.value / 100
         autoPlay: myMusicstate
         onAutoPlayChanged: {
             if(myMusicstate)
@@ -178,7 +163,6 @@ Item {
         }
         onSourceChanged: {
             lm.setPathofSong(source, appCurrtentDir);
-            //console.log( ado.volume);
         }
         onPositionChanged: {
             sprogress.maximumValue = duration;
@@ -199,13 +183,10 @@ Item {
         onStatusChanged: {
             switch (status) {
             case Audio.NoMedia:
-                //console.log("status:nomedia");
                 break;
             case Audio.Loading:
-                //console.log("status:loading");
                 break;
             case Audio.Loaded:
-                //console.log("status:loaded");
                 sprogress.maximumValue = duration;
                 if (metaData.title) {
                     plm.setCurrentTitle(metaData.title);
@@ -215,16 +196,12 @@ Item {
                 }
                 break;
             case Audio.Buffering:
-                //console.log("status:buffering");
                 break;
             case Audio.Stalled:
-                //console.log("status:stalled");
                 break;
             case Audio.Buffered:
-                //console.log("status:buffered");
                 break;
             case Audio.InvalidMedia:
-                //console.log("status:invalid media");
                 switch (error) {
                 case Audio.FormatError:
                     ttitle.text = qsTr("需要安装解码器");
@@ -244,15 +221,16 @@ Item {
                 }
                 break;
             case Audio.EndOfMedia:
-                //console.log("status:end of media");
                 lm.currentIndex = 0;
                 sprogress.value = 0;
+                var count = plm.rowCount()
+                if (count <= 0) return
                 switch (btnloopMode.loopMode) {
                 case 1:
                     ado.play();
                     break;
                 case 2:
-                    plm.currentIndex ++;
+                    plm.currentIndex = (plm.currentIndex + 1) % count
                     break;
                 case 3:
                     plm.randomIndex();
@@ -280,10 +258,8 @@ Item {
 
     ListView {
         id: lyric
-        visible: false
-        //anchors.left: parent.horizontalCenter
-        //anchors.leftMargin: -80
-        anchors.left: albumImage.right
+        visible: true
+        anchors.left: albumContainer.right
         anchors.right: parent.right
         anchors.top: topToolWidget.bottom
         anchors.bottom: bg1.top
@@ -325,7 +301,7 @@ Item {
 
     OpacityMask {
         id: lyricMask
-        visible: false
+        visible: true
         anchors.fill: lyric
         source: lyric
         maskSource: imglyricMask
@@ -376,7 +352,7 @@ Item {
 
     ListView {
         id: playList
-        visible: true
+        visible: false
         anchors.fill: songListbg
         anchors.bottom: songListbg.bottom
         clip: true
@@ -462,7 +438,6 @@ Item {
                         myMusicstate = true
                     else
                         myMusicstate = false
-
                 }
                 style: ButtonStyle {
                     background: Rectangle {
@@ -482,45 +457,96 @@ Item {
                     }
                 }
             }
-
         }
     }
 
-    Image {
-        visible: lyricMask.visible
-        id: albumImage
-        source: "qrc:/music/images/cd.png"
-        width: smallScreen ?  70 : 130
-        height: smallScreen ?  70 : 130
-        antialiasing: true
+    Item {
+        visible: !playList.visible
+        id: albumContainer
+        width: 130
+        height: 130
         anchors.right: parent.horizontalCenter
-        anchors.rightMargin: smallScreen ? 130 : 150
+        anchors.rightMargin: 150
         anchors.bottom: parent.verticalCenter
-        anchors.bottomMargin: smallScreen ? -15 : 0
-    }
+        anchors.bottomMargin: 0
 
-    RotationAnimator {
-        id: anmimgalbum
-        target: albumImage
-        from: 0
-        to: 360
-        duration: 50000
-        loops: Animation.Infinite
-        running: ado.playbackState == Audio.PlayingState &&  lyricMask.visible
-        onRunningChanged: {
-            if (running === false) {
-                from = albumImage.rotation;
-                to = from + 360;
+        // 滑动切歌
+        MouseArea {
+            id: swipeArea
+            anchors.fill: parent
+            property real startX: 0
+
+            onPressed: {
+                startX = mouse.x
+            }
+
+            onReleased: {
+                var deltaX = mouse.x - startX
+                var count = plm.rowCount()
+                if (count <= 0) return
+
+                if (deltaX > 50) {
+                    plm.currentIndex = (plm.currentIndex - 1 + count) % count
+                } else if (deltaX < -50) {
+                    plm.currentIndex = (plm.currentIndex + 1) % count
+                }
+            }
+        }
+
+        // 黑胶唱片背景
+        Image {
+            id: albumImage
+            source: "qrc:/music/images/cd.png"
+            width: 130
+            height: 130
+            anchors.centerIn: parent
+            antialiasing: true
+        }
+
+        // 专辑封面（圆形，覆盖唱片中心红色区域）
+        Rectangle {
+            id: albumCoverContainer
+            width: 65
+            height: 65
+            radius: 32.5
+            anchors.centerIn: parent
+            color: "transparent"
+            clip: true
+
+            Image {
+                id: albumCover
+                width: parent.width
+                height: parent.height
+                anchors.centerIn: parent
+                source: playList.currentIndex >= 0 ?
+                        "file:///" + appCurrtentDir + "/src/artist/" + playList.currentIndex + ".jpg" : ""
+                fillMode: Image.PreserveAspectCrop
+            }
+        }
+
+        RotationAnimator {
+            id: anmimgalbum
+            target: albumContainer
+            from: 0
+            to: 360
+            duration: 50000
+            loops: Animation.Infinite
+            running: ado.playbackState == Audio.PlayingState && !playList.visible
+            onRunningChanged: {
+                if (running === false) {
+                    from = albumContainer.rotation
+                    to = from + 360
+                }
             }
         }
     }
 
     Text {
         id: titleText
-        anchors.top: albumImage.bottom
-        anchors.left: albumImage.left
-        anchors.topMargin: smallScreen ? 10 : 20
-        visible: lyricMask.visible
+        anchors.top: albumContainer.bottom
+        anchors.left: albumContainer.left
+        anchors.topMargin: 20
+        visible: !playList.visible
         text: ado.playbackState == Audio.PlayingState ? "歌 名：" + plm.getcurrentTitle() : ""
         color: "#aaffffff"
         font.pixelSize: 13
@@ -529,22 +555,79 @@ Item {
     Text {
         id: singerText
         anchors.top: titleText.bottom
-        anchors.left: albumImage.left
+        anchors.left: albumContainer.left
         anchors.topMargin: 10
-        visible: lyricMask.visible
+        visible: !playList.visible
         text: ado.playbackState == Audio.PlayingState ? "演 唱：" + plm.getcurrentAuthor() : ""
         color: "#aaffffff"
         font.pixelSize: 13
     }
 
+    // 播放时间显示
     Text{
-        anchors.left:  btnforward.right
+        id: timeText
+        anchors.left: btnforward.right
         anchors.leftMargin: 20
         anchors.verticalCenter: btnplay.verticalCenter
         text: currentMusicTime(ado.position) + "/" + currentMusicTime(ado.duration)
         color: "#27e0fb"
         font.pointSize: 13
         font.bold: true
+    }
+
+    // 音量图标
+    Image {
+        id: volumeIcon
+        source: "qrc:/music/images/img_volume2.png"
+        width: 20
+        height: 20
+        anchors.left: timeText.right
+        anchors.leftMargin: 20
+        anchors.verticalCenter: btnplay.verticalCenter
+    }
+
+    // 音量滑块
+    Slider {
+        id: volumeSlider
+        width: 100
+        height: 20
+        anchors.left: volumeIcon.right
+        anchors.leftMargin: 5
+        anchors.verticalCenter: btnplay.verticalCenter
+        minimumValue: 0
+        maximumValue: 100
+        value: 50
+        stepSize: 1
+        style: SliderStyle {
+            groove: Rectangle {
+                width: control.width
+                height: 4
+                radius: 2
+                color: "#303030"
+                Rectangle {
+                    width: styleData.handlePosition
+                    height: 4
+                    color: "#27e0fb"
+                    radius: 2
+                }
+            }
+            handle: Rectangle {
+                width: 12
+                height: 12
+                radius: 6
+                color: "#27e0fb"
+            }
+        }
+    }
+
+    // 音量百分比
+    Text {
+        anchors.left: volumeSlider.right
+        anchors.leftMargin: 5
+        anchors.verticalCenter: btnplay.verticalCenter
+        text: volumeSlider.value.toFixed(0) + "%"
+        color: "#27e0fb"
+        font.pixelSize: 12
     }
 
     function currentMusicTime(time){
@@ -565,7 +648,7 @@ Item {
             ss = "0" + seconds.toString();
         else
             ss = seconds.toString();
-        return /*hh+":"*/ + mm + ":" + ss
+        return mm + ":" + ss
     }
 
     Button {
@@ -584,7 +667,7 @@ Item {
 
     Button {
         id: btnplay
-        anchors.horizontalCenter : parent.horizontalCenter
+        anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 10
         width: 42
@@ -614,11 +697,13 @@ Item {
         width: 32
         height: 32
         onClicked: {
+            var count = plm.rowCount()
+            if (count <= 0) return
             switch (btnloopMode.loopMode) {
             case 0:
             case 1:
             case 2:
-                plm.currentIndex --
+                plm.currentIndex = (plm.currentIndex - 1 + count) % count
                 break;
             case 3:
                 plm.randomIndex();
@@ -642,12 +727,14 @@ Item {
         width: 32
         height: 32
         onClicked: {
+            var count = plm.rowCount()
+            if (count <= 0) return
             if (ado.hasAudio)
                 switch (btnloopMode.loopMode) {
                 case 0:
                 case 1:
                 case 2:
-                    plm.currentIndex ++
+                    plm.currentIndex = (plm.currentIndex + 1) % count
                     break;
                 case 3:
                     plm.randomIndex();
@@ -718,5 +805,3 @@ Item {
         }
     }
 }
-
-
