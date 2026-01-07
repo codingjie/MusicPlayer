@@ -76,6 +76,60 @@ Item {
         anchors.horizontalCenter: playListbg.horizontalCenter
         color: "#30141414"
     }
+    // 左上角添加返回按钮
+    Button {
+        id: btnBack
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.leftMargin: 15
+        anchors.topMargin: 30 // 微调位置与标题对齐
+        width: 40
+        height: 40
+
+        style: ButtonStyle {
+            background: Rectangle {
+                implicitWidth: 50
+                implicitHeight: 40
+                // 平时透明，按下时显示深色半透明背景
+                color: control.pressed ? "#40141414" : "transparent"
+                radius: 4
+
+                // 使用 Canvas 绘制实心箭头
+                Canvas {
+                    id: arrowCanvas
+                    anchors.centerIn: parent
+                    width: 24  // 增加宽度以容纳箭身
+                    height: 12
+                    onPaint: {
+                        var ctx = getContext("2d");
+                        ctx.reset();
+                        ctx.fillStyle = "#27e0fb"; // 您统一的青蓝色
+
+                        // 开始绘制箭头组合图形
+                        ctx.beginPath();
+
+                        // 1. 绘制左侧的三角形头部
+                        ctx.moveTo(0, height / 2);          // 顶点（最左侧）
+                        ctx.lineTo(10, 0);                  // 箭头右上角
+                        ctx.lineTo(10, height);             // 箭头右下角
+
+                        // 2. 绘制右侧连接的矩形箭身
+                        // 箭身高度设为箭头总高度的一半，使其居中平滑连接
+                        var stemHeight = 4;
+                        ctx.rect(10, (height - stemHeight) / 2, 14, stemHeight);
+
+                        ctx.closePath();
+                        ctx.fill();
+                    }
+                }
+            }
+        }
+
+        onClicked: {
+            mainWindow.myMusicstate = false
+            console.log("返回主页面")
+        }
+    }
     Button {
         id: btnListText
         anchors.centerIn: topToolWidget
@@ -332,12 +386,12 @@ Item {
         style: SliderStyle {
             groove: Rectangle {
                 width: control.width
-                height: 1
+                height: 3 // 进度条背景
                 radius: 1
                 color: "#303030"
                 Rectangle {
                     width: styleData.handlePosition
-                    height: 1
+                    height: 3  // 进度条
                     color: "#27e0fb"
                     radius: 1
                 }
